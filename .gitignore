@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment & secrets
+.env
+backend/app/config.py
+
+# Database
+data/db/*.db
+
+# Uploaded files
+data/uploads/*
+!data/uploads/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Redis
+dump.rdb
+
+# Docker
+*.log
