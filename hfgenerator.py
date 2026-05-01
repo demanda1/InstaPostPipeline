@@ -7,15 +7,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-hf_key = os.getenv("HUGGINGFFACE_TOKEN")
-
-# CONFIG
-# Using a highly stable model for the free API
-MODEL_ID = "stabilityai/stable-diffusion-xl-base-1.0"
-client = InferenceClient(token=hf_key)
-
-def generate_and_download_image(prompt, slide_number):
+def generate_and_download_image(prompt, slide_number, env):
     print(f"Requesting Slide {slide_number} via HF InferenceClient...")
+
+    hf_key=getattr(env, "HUGGINGFFACE_TOKEN", os.getenv("HUGGINGFFACE_TOKEN"))
+
+    # CONFIG
+    # Using a highly stable model for the free API
+    MODEL_ID = "stabilityai/stable-diffusion-xl-base-1.0"
+    client = InferenceClient(token=hf_key)
     
     max_retries = 3
     for attempt in range(max_retries):
@@ -42,7 +42,3 @@ def generate_and_download_image(prompt, slide_number):
             else:
                 print(f"An unexpected error occurred: {e}")
                 raise e
-
-if __name__ == "__main__":
-    test_prompt = "A high-tech digital circuit board, cinematic lighting, 8k resolution, professional"
-    generate_and_download_image(test_prompt, 1)

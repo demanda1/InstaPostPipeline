@@ -7,9 +7,6 @@ import requests
 
 load_dotenv()
 
-api_key = os.getenv("GENAI_APIKEY")
-client = genai.Client(api_key=api_key)
-
 def get_clean_json(raw_response_string):
     # Step A: Convert the raw STRING into a dictionary
     full_dict = json.loads(raw_response_string)
@@ -36,7 +33,9 @@ def deep_clean_text(data):
         return data.replace('\n', ' ').replace('\\', '').strip()
     return data
 
-def generate_carousel_content(raw_text):
+def generate_carousel_content(raw_text, env):
+
+    api_key=getattr(env, "GENAI_APIKEY", os.getenv("GENAI_APIKEY"))
     
     prompt = f"""
     Analyze the following text and create 1 heading slide and 3 structured slides for an Instagram carousel. 

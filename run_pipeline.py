@@ -3,10 +3,10 @@ from hfgenerator import generate_and_download_image
 from typography import create_graphic
 import os
 
-def run_pipeline(user_input):
+def run_pipeline(user_input, env):
     # 1. Analyze and get structure (Updated for smart prompt)
     print("--- Step 1: Analyzing Content with Gemini ---")
-    data = generate_carousel_content(user_input)
+    data = generate_carousel_content(user_input, env)
     print(f"Content Plan generated successfully.")
 
     final_slides = []
@@ -18,7 +18,7 @@ def run_pipeline(user_input):
         
         # A. Generate the background image
         prompt = data[slide_key]["visual_prompt"]
-        bg_image = generate_and_download_image(prompt, i)
+        bg_image = generate_and_download_image(prompt, i, env)
         
         # B. Add smart text to the image (Updated to use Gemini text)
         headline = data[slide_key]["headline"]
@@ -32,7 +32,3 @@ def run_pipeline(user_input):
     print("\n--- Pipeline Finished Locally! ---")
     print(f"Caption: \n{data['caption']}")
     print(f"Final images ready for upload: {final_slides}")
-
-if __name__ == "__main__":
-    user_text = input("Enter your topic (e.g., '3 tips for focus'): ")
-    run_pipeline(user_text)

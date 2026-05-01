@@ -8,12 +8,12 @@ load_dotenv()
 
 
 # CONFIGURATION
-CIVITAI_API_KEY = os.getenv("CIVITAI_API_KEY")
 # Standard SDXL Base model (for good compatibility)
 MODEL_VERSION_ID = 101053 
 BASE_URL = "https://civitai.com/api/v1"
 
-def generate_and_download_image(prompt, slide_number):
+def generate_and_download_image(prompt, slide_number, env):
+    CIVITAI_API_KEY=getattr(env, "CIVITAI_API_KEY", os.getenv("CIVITAI_API_KEY"))
     headers = {
         "Authorization": f"Bearer {CIVITAI_API_KEY}",
         "Content-Type": "json"
@@ -79,9 +79,3 @@ def generate_and_download_image(prompt, slide_number):
         handler.write(img_data)
     print(f"Saved as {filename}")
     return filename
-
-# --- Test Module ---
-if __name__ == "__main__":
-    # Ensure you set your API key above before running this!
-    test_prompt = "A hyper-realistic close-up of a digital computer chip on a motherboard, glowing blue LED accents, shallow depth of field, high quality photography"
-    generate_and_download_image(test_prompt, 1)
