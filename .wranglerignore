@@ -12,7 +12,6 @@ env/
 .venv/
 .wrangler/
 wrangler/
-python_modules/
 
 # IDE
 .vscode/

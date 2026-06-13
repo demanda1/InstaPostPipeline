@@ -27,9 +27,19 @@ def create_graphic(background_path, headline_text, body_text, slide_number):
     img = Image.open(background_path).convert("RGBA")
     width, height = img.size
     draw = ImageDraw.Draw(img)
+    
+    # Get the directory where the script is located
+    current_dir = os.path.dirname(__file__)
+    font_path = os.path.join(current_dir, "Helvetica.ttc")
+    if not os.path.exists(font_path):
+        print(f"FONT NOT FOUND at: {font_path}")
+        print("Files available in this directory:", os.listdir(current_dir))
+        if os.path.exists(os.path.join(current_dir, "assets")):
+            print("Files in assets/ folder:", os.listdir(os.path.join(current_dir, "assets")))
+
 
     # 1. Setup Fonts
-    font_path = "/System/Library/Fonts/Helvetica.ttc"
+    #font_path = "/assets/Helvetica.ttc"
     headline_font = ImageFont.truetype(font_path, 60, index=1)
     body_font = ImageFont.truetype(font_path, 35, index=0)
 

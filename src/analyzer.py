@@ -1,5 +1,3 @@
-from google import genai
-from google.genai import types
 import json
 import os
 from dotenv import load_dotenv
@@ -61,7 +59,7 @@ def generate_carousel_content(raw_text, env):
     Input Text: {raw_text}
     """
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     payload = json.dumps({
         "contents": [
             {
