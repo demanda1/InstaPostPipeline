@@ -1,19 +1,18 @@
 import os
 import json
 
-def run_pipeline(user_input, env):
+
+def run_pipeline(user_input):
     from analyzer import generate_carousel_content
     from pollinationsAi import generate_and_download_image
     from typography import create_graphic
 
-    # ✅ DEBUG: Print cwd and existing files BEFORE pipeline
     print(f"[DEBUG] Working directory: {os.getcwd()}")
     print(f"[DEBUG] Files before pipeline: {os.listdir('.')}")
 
-    # 1. Analyze and get structure
     print("--- Step 1: Analyzing Content with Gemini ---")
-    raw_data = generate_carousel_content(user_input, env)
-    print(f"Content Plan generated successfully.")
+    raw_data = generate_carousel_content(user_input)
+    print("Content Plan generated successfully.")
 
     if isinstance(raw_data, str):
         try:
@@ -25,7 +24,7 @@ def run_pipeline(user_input, env):
             data = json.loads(cleaned_data)
         except Exception as e:
             print(f"Error parsing JSON: {e}")
-            raise e
+            raise
     else:
         data = raw_data
 
@@ -36,30 +35,15 @@ def run_pipeline(user_input, env):
         slide_key = f"slide{i}"
 
         prompt = data[slide_key]["visual_prompt"]
-        bg_image = generate_and_download_image(prompt, i, env)
-
-        # ✅ DEBUG: Confirm bg_image was actually saved
-        print(f"[DEBUG] bg_image path returned: {bg_image}")
-        print(f"[DEBUG] bg_image exists on disk: {os.path.exists(bg_image)}")
+        bg_image = generate_and_download_image(prompt, i)
 
         headline = data[slide_key]["headline"]
         body = data[slide_key]["body"]
 
         final_path = create_graphic(bg_image, headline, body, i)
-
-        # ✅ DEBUG: Confirm final_path was actually saved
-        print(f"[DEBUG] final_path returned: {final_path}")
-        print(f"[DEBUG] final_path exists on disk: {os.path.exists(final_path)}")
-
         final_slides.append(final_path)
 
-    # ✅ DEBUG: List ALL files after pipeline finishes
-    print(f"\n[DEBUG] All files after pipeline: {os.listdir('.')}")
-    print(f"[DEBUG] Working directory: {os.getcwd()}")
-
-    print("\n--- Pipeline Finished Locally! ---")
-    print(f"Caption: \n{data['caption']}")
-    print(f"Final images ready for upload: {final_slides}")
-    
-    # ✅ Return final_slides so pipelineapi.py can use the exact paths
+    print("\n--- Pipeline Finished! ---")
+    print(f"Caption:\n{data.get('caption', '')}")
+    print(f"Final images ready: {final_slides}")
     return final_slides

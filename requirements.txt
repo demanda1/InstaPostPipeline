@@ -1,5 +1,7 @@
 fastapi
+uvicorn[standard]
 pydantic
 pillow
 requests
 python-dotenv
+boto3

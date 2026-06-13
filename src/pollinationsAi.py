@@ -1,25 +1,23 @@
 import io
-import json
-import urllib.parse
+import os
 import random
 import time
-from PIL import Image
-import js
-import os
-from pyodide.ffi import run_sync
+import urllib.parse
 
-def generate_and_download_image(prompt, slide_number, env):
-    
-    api_key = getattr(env, "POLLINATION_KEY", os.getenv("POLLINATION_KEY"))
+import requests
+from PIL import Image
+
+
+def generate_and_download_image(prompt, slide_number):
+    api_key = os.getenv("POLLINATION_KEY")
     if not api_key:
         raise ValueError("POLLINATION_KEY is missing!")
-
 
     print(f"--- Processing Slide {slide_number} ---")
 
     base_url = "https://gen.pollinations.ai/image"
     safe_prompt = urllib.parse.quote(prompt, safe="")
-    unique_seed = random.randint(1, 9999999)
+    unique_seed = random.randint(1, 9_999_999)
 
     def build_url(seed, use_query_key=False):
         params = {
@@ -33,38 +31,26 @@ def generate_and_download_image(prompt, slide_number, env):
             params["key"] = api_key
         return f"{base_url}/{safe_prompt}?{urllib.parse.urlencode(params)}"
 
-    def fetch_image(use_query_key=False):
-        url = build_url(unique_seed, use_query_key=use_query_key)
-
-        js_options = {"method": "GET"}
-        if not use_query_key:
-            js_options["headers"] = {"Authorization": f"Bearer {api_key}"}
-
-        options_object = js.JSON.parse(json.dumps(js_options))
-        return run_sync(js.fetch(url, options_object))
-
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            # Try Bearer header first, then ?key= on retry
-            response = fetch_image(use_query_key=(attempt > 0))
+            use_query_key = attempt > 0
+            url = build_url(unique_seed, use_query_key=use_query_key)
+            headers = {} if use_query_key else {"Authorization": f"Bearer {api_key}"}
 
-            if response.status == 401:
-                error_text = run_sync(response.text())
-                raise Exception(f"Unauthorized (401): {error_text}")
+            response = requests.get(url, headers=headers, timeout=120)
 
-            if response.status == 429:
-                unique_seed = random.randint(1, 9999999)
+            if response.status_code == 401:
+                raise Exception(f"Unauthorized (401): {response.text}")
+
+            if response.status_code == 429:
+                unique_seed = random.randint(1, 9_999_999)
                 print(f"Rate limited. Retrying in 15s... ({attempt + 1}/{max_retries})")
                 time.sleep(15)
                 continue
 
-            if not response.ok:
-                error_text = run_sync(response.text())
-                raise Exception(f"API error {response.status}: {error_text}")
-
-            array_buffer = run_sync(response.arrayBuffer())
-            image_bytes = bytes(js.Uint8Array.new(array_buffer).to_py())
+            response.raise_for_status()
+            image_bytes = response.content
 
             if len(image_bytes) < 1000:
                 raise ValueError(image_bytes.decode("utf-8", errors="ignore"))

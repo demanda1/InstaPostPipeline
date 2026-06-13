@@ -2,12 +2,40 @@ import io
 import os
 import uuid
 import zipfile
-from fastapi import FastAPI, Request, HTTPException
+from pathlib import Path
+
+import boto3
+from botocore.client import Config
+from botocore.exceptions import ClientError
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from workers import WorkerEntrypoint
-from js import Uint8Array
-import asgi
+
+load_dotenv()
+
+R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
+R2_BUCKET = os.getenv("R2_BUCKET", "instapost-zips")
+
+
+def _r2_client():
+    if not (R2_ACCOUNT_ID and R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY):
+        raise HTTPException(
+            status_code=500,
+            detail="R2 credentials are not configured (set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY).",
+        )
+    return boto3.client(
+        "s3",
+        endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+        aws_access_key_id=R2_ACCESS_KEY_ID,
+        aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+        region_name="auto",
+        config=Config(signature_version="s3v4"),
+    )
+
 
 app = FastAPI()
 
@@ -16,51 +44,28 @@ class TopicRequest(BaseModel):
     topic: str
 
 
-def _get_bucket(request: Request):
-    env = request.scope.get("env")
-    bucket = getattr(env, "BUCKET", None) if env is not None else None
-    if bucket is None:
-        raise HTTPException(status_code=500, detail="R2 bucket binding 'BUCKET' is not configured")
-    return bucket
-
-
 @app.post("/generate-posts")
-async def start_pipeline(data: TopicRequest, request: Request):
+def start_pipeline(data: TopicRequest):
     from run_pipeline import run_pipeline
-    env = request.scope.get("env")
 
-    final_slides = run_pipeline(data.topic, env)
-
-    print(f"[DEBUG] pipelineapi cwd: {os.getcwd()}")
-    print(f"[DEBUG] pipelineapi files: {os.listdir('.')}")
+    final_slides = run_pipeline(data.topic)
 
     generated_images = {}
-
     for path in final_slides:
         if os.path.exists(path):
             with open(path, "rb") as f:
                 generated_images[os.path.basename(path)] = f.read()
-            print(f"✅ Loaded from pipeline path: {path}")
-        else:
-            print(f"❌ Missing from pipeline path: {path}")
 
     for file in os.listdir("."):
-        if file.startswith("final_slide_") and file.endswith(".jpg"):
-            if file not in generated_images:
-                try:
-                    with open(file, "rb") as f:
-                        generated_images[file] = f.read()
-                    print(f"✅ Loaded from disk scan: {file}")
-                except Exception as e:
-                    print(f"❌ Failed to read {file}: {e}")
-
-    print(f"Total images collected: {len(generated_images)}")
+        if file.startswith("final_slide_") and file.endswith(".jpg") and file not in generated_images:
+            try:
+                with open(file, "rb") as f:
+                    generated_images[file] = f.read()
+            except Exception as e:
+                print(f"Failed to read {file}: {e}")
 
     if not generated_images:
-        raise HTTPException(
-            status_code=500,
-            detail=f"No images found. Pipeline returned: {final_slides}. Files on disk: {os.listdir('.')}"
-        )
+        raise HTTPException(status_code=500, detail="Pipeline produced no images.")
 
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -70,15 +75,14 @@ async def start_pipeline(data: TopicRequest, request: Request):
 
     key = f"carousel-{uuid.uuid4().hex}.zip"
 
-    bucket = _get_bucket(request)
-    js_buf = Uint8Array.new(len(zip_bytes))
-    js_buf.assign(zip_bytes)
-    await bucket.put(
-        key,
-        js_buf,
-        httpMetadata={"contentType": "application/zip"},
+    client = _r2_client()
+    client.put_object(
+        Bucket=R2_BUCKET,
+        Key=key,
+        Body=zip_bytes,
+        ContentType="application/zip",
     )
-    print(f"✅ Uploaded zip to R2 with key: {key} ({len(zip_bytes)} bytes)")
+    print(f"Uploaded zip to R2: {key} ({len(zip_bytes)} bytes)")
 
     return JSONResponse(
         status_code=201,
@@ -92,15 +96,17 @@ async def start_pipeline(data: TopicRequest, request: Request):
 
 
 @app.get("/download/{key}")
-async def download_zip(key: str, request: Request):
-    bucket = _get_bucket(request)
-    obj = await bucket.get(key)
-    if obj is None:
-        raise HTTPException(status_code=404, detail=f"No object found for key '{key}'")
+def download_zip(key: str):
+    client = _r2_client()
+    try:
+        obj = client.get_object(Bucket=R2_BUCKET, Key=key)
+    except ClientError as e:
+        code = e.response.get("Error", {}).get("Code", "")
+        if code in {"NoSuchKey", "404"}:
+            raise HTTPException(status_code=404, detail=f"No object found for key '{key}'")
+        raise HTTPException(status_code=500, detail=f"R2 error: {e}")
 
-    ab = await obj.arrayBuffer()
-    zip_bytes = bytes(Uint8Array.new(ab))
-
+    zip_bytes = obj["Body"].read()
     return Response(
         content=zip_bytes,
         media_type="application/zip",
@@ -109,18 +115,18 @@ async def download_zip(key: str, request: Request):
 
 
 @app.delete("/download/{key}")
-async def delete_zip(key: str, request: Request):
-    bucket = _get_bucket(request)
-    await bucket.delete(key)
-    print(f"🗑️  Deleted R2 object: {key}")
+def delete_zip(key: str):
+    client = _r2_client()
+    client.delete_object(Bucket=R2_BUCKET, Key=key)
+    print(f"Deleted R2 object: {key}")
     return Response(status_code=204)
 
 
-class Default(WorkerEntrypoint):
-    async def fetch(self, request):
-        return await asgi.fetch(app, request, self.env)
+_public_dir = Path(__file__).resolve().parent.parent / "public"
+if _public_dir.is_dir():
+    app.mount("/", StaticFiles(directory=str(_public_dir), html=True), name="ui")
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8000")))

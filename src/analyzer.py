@@ -31,9 +31,9 @@ def deep_clean_text(data):
         return data.replace('\n', ' ').replace('\\', '').strip()
     return data
 
-def generate_carousel_content(raw_text, env):
+def generate_carousel_content(raw_text):
 
-    api_key=getattr(env, "GENAI_APIKEY", os.getenv("GENAI_APIKEY"))
+    api_key = os.getenv("GENAI_APIKEY")
     
     prompt = f"""
     Analyze the following text and create 1 heading slide and 3 structured slides for an Instagram carousel. 

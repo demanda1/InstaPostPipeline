@@ -4,7 +4,10 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi",
-    "python-dotenv",
+    "uvicorn[standard]",
+    "pydantic",
+    "pillow",
     "requests",
-    "pillow"
+    "python-dotenv",
+    "boto3",
 ]

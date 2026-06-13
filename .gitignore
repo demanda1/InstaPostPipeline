@@ -1,42 +1,13 @@
-# Python
-__pycache__/
-*.py[cod]
-*.so
-*.egg-info/
-dist/
-build/
+# Generated pipeline artifacts (created per-request, never commit)
+final_slide_*.jpg
+slide_*.png
 
-# Virtual environment
-venv/
-env/
-.venv/
-.wrangler/
-wrangler/
-python_modules/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Environment & secrets
-.env
-backend/app/config.py
-
-# Database
-data/db/*.db
-
-# Uploaded files
-data/uploads/*
-!data/uploads/.gitkeep
-
-# OS files
+# Node / Cloudflare Wrangler leftovers (not used by Render)
+node_modules/
+package.json
+package-lock.json
+.wrangler/.env
 .DS_Store
-Thumbs.db
-
-# Redis
-dump.rdb
-
-# Docker
-*.log
+__pycache__/
+*.pyc
+.env

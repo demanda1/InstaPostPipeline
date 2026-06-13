@@ -28,17 +28,8 @@ def create_graphic(background_path, headline_text, body_text, slide_number):
     width, height = img.size
     draw = ImageDraw.Draw(img)
     
-    # Get the directory where the script is located
-    current_dir = os.path.dirname(__file__)
-    headline_font_path = os.path.join(current_dir, "Inter-Bold.ttf")
-    body_font_path = os.path.join(current_dir, "Inter-Regular.ttf")
-    for p in (headline_font_path, body_font_path):
-        if not os.path.exists(p):
-            print(f"FONT NOT FOUND at: {p}")
-            print("Files available in this directory:", os.listdir(current_dir))
-
-    headline_font = ImageFont.truetype(headline_font_path, 60)
-    body_font = ImageFont.truetype(body_font_path, 35)
+    headline_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 60)
+    body_font = ImageFont.truetype("DejaVuSans.ttf", 35)
 
     # 2. Settings
     margin = 60
