@@ -21,6 +21,17 @@
   ],
   "ai": {
     "binding": "AI"
+  },
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "instapost-zips"
+    }
+  ],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
   }
 	/**
 	 * Smart Placement

@@ -30,18 +30,15 @@ def create_graphic(background_path, headline_text, body_text, slide_number):
     
     # Get the directory where the script is located
     current_dir = os.path.dirname(__file__)
-    font_path = os.path.join(current_dir, "Helvetica.ttc")
-    if not os.path.exists(font_path):
-        print(f"FONT NOT FOUND at: {font_path}")
-        print("Files available in this directory:", os.listdir(current_dir))
-        if os.path.exists(os.path.join(current_dir, "assets")):
-            print("Files in assets/ folder:", os.listdir(os.path.join(current_dir, "assets")))
+    headline_font_path = os.path.join(current_dir, "Inter-Bold.ttf")
+    body_font_path = os.path.join(current_dir, "Inter-Regular.ttf")
+    for p in (headline_font_path, body_font_path):
+        if not os.path.exists(p):
+            print(f"FONT NOT FOUND at: {p}")
+            print("Files available in this directory:", os.listdir(current_dir))
 
-
-    # 1. Setup Fonts
-    #font_path = "/assets/Helvetica.ttc"
-    headline_font = ImageFont.truetype(font_path, 60, index=1)
-    body_font = ImageFont.truetype(font_path, 35, index=0)
+    headline_font = ImageFont.truetype(headline_font_path, 60)
+    body_font = ImageFont.truetype(body_font_path, 35)
 
     # 2. Settings
     margin = 60
